@@ -20,7 +20,7 @@ report. The logic never changes; only the cell variant does.
 ```
 
 Every candidate is scored by the [`vyges-sta-si`](https://github.com/vyges-tools/sta-si)
-timer, on an ordinary **CPU — no GPU, no CUDA**. It picks **sizes, not locations**: physical
+timer — it's **pure Rust**, so you can experiment with GPUs too via [rust-gpu](https://rust-gpu.github.io/). It picks **sizes, not locations**: physical
 placement / legalization / routing stay the flow's job. Run it **beside** the open flow —
 size the synthesized netlist, then hand the better netlist to place-and-route, or run it as
 an independent, legible second opinion.
