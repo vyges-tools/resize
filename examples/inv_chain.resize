@@ -1,0 +1,11 @@
+# Size a 2-inverter chain to meet a tight clock. Run from the repo root:
+#   vyges-resize run examples/inv_chain.resize -o sized.v
+design:      top
+netlist:     inv.v
+lib:         inv.lib
+clock:       clk 0.30
+input_slew:  0.02
+output_load: 0.005
+group:       INV INV2        # weakest -> strongest drive family
+objective:   timing
+effort:      medium

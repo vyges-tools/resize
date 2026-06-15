@@ -1,0 +1,23 @@
+[package]
+name = "vyges-resize"
+version = "0.0.1"
+edition = "2021"
+description = "STA-driven gate sizing: drive-strength resize / Vt-swap to close timing, netlist in / netlist out."
+license = "Apache-2.0"
+authors = ["Vyges <https://vyges.com/contact>"]
+homepage = "https://vyges.com"
+repository = "https://github.com/vyges-tools/resize"
+
+# One dependency: the timing engine. vyges-sta-si re-exports the shared vyges-loom
+# readers + design model, so resize needs no other deps. Sibling-checkout path dep in
+# dev; a release pins a git/version dep.
+[dependencies]
+vyges-sta-si = { path = "../vyges-tools-sta-si" }
+
+[[bin]]
+name = "vyges-resize"
+path = "src/main.rs"
+
+[lib]
+name = "vyges_resize"
+path = "src/lib.rs"
