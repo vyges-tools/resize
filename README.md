@@ -40,6 +40,7 @@ A `.resize` file is a superset of a `.sta` timing job, plus the resize knobs:
 design:     top
 netlist:    top.v
 lib:        tt.lib
+spef:       top.spef               # optional — post-place ECO sizing (see below)
 clock:      clk 1.2
 input_slew: 0.02
 output_load: 0.01
@@ -75,11 +76,22 @@ See [`examples/inv_chain.resize`](examples/inv_chain.resize) for a runnable exam
 entirely by the `.lib` (the legal variants and their delay/power) and the constraints. It
 runs out of the box on open PDKs and on any PDK whose Liberty you have.
 
+## Post-place ECO mode
+
+Name a `spef:` in the job and sizing is scored against the **real interconnect** the placed
+design presents — wire RC, effective capacitance, fan-out — instead of ideal nets. This is
+where drive-strength sizing earns its keep: a gate driving a long, heavily-loaded net is the
+one that actually needs a stronger variant, and that only shows up once the parasitics are in.
+Run it as a post-place ECO: place → extract (SPEF) → `vyges-resize` → hand the resized netlist
+back for legalization. Without a `spef:` it sizes pre-place against ideal interconnect; the
+report states which mode it ran in.
+
 ## Status & bounds
 
-v0 sizes **pre-place** (netlist → netlist) on the variant families you declare; objective
-`timing` closes setup WNS (and recovers area where slack allows). It is **not** a
-place-and-route tool — it decides sizes and hands physical realization back to the flow. Each
-candidate is scored by a full timing pass today (correct; bounded for moderate blocks); a
-cone-localized incremental score lands behind the same loop. Sign-off is still the golden
-timer — `vyges-resize`'s numbers are a fast, license-free guide.
+v0 sizes a netlist → netlist on the variant families you declare; objective `timing` closes
+setup WNS (and recovers area where slack allows), **pre-place** (ideal interconnect) or
+**post-place** (with SPEF, above). It is **not** a place-and-route tool — it decides sizes and
+hands physical realization back to the flow. Pre-place candidates are scored by a fast
+cone-localized incremental timing pass; with SPEF each candidate is scored by a full timing
+pass today (correct; the incremental score under parasitics lands behind the same loop). Sign-
+off is still the golden timer — `vyges-resize`'s numbers are a fast, license-free guide.

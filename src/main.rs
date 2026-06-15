@@ -96,6 +96,10 @@ fn render_report(r: &ResizeResult) -> String {
     let mut s = String::new();
     s.push_str("vyges-resize — gate sizing\n");
     s.push_str(&format!(
+        "  mode:    {}\n",
+        if r.eco { "post-place ECO (SPEF interconnect)" } else { "pre-place (ideal interconnect)" }
+    ));
+    s.push_str(&format!(
         "  before:  WNS {:.4} ns [{}]   TNS {:.4} ns\n",
         r.before_wns, met(r.before_wns), r.before_tns
     ));
@@ -117,8 +121,8 @@ fn report_json(r: &ResizeResult) -> String {
         .map(|(i, o, n)| format!("{{\"inst\":\"{i}\",\"old\":\"{o}\",\"new\":\"{n}\"}}"))
         .collect();
     format!(
-        "{{\"before_wns\":{},\"before_tns\":{},\"after_wns\":{},\"after_tns\":{},\"changed\":[{}]}}",
-        r.before_wns, r.before_tns, r.after_wns, r.after_tns, changes.join(",")
+        "{{\"eco\":{},\"before_wns\":{},\"before_tns\":{},\"after_wns\":{},\"after_tns\":{},\"changed\":[{}]}}",
+        r.eco, r.before_wns, r.before_tns, r.after_wns, r.after_tns, changes.join(",")
     )
 }
 

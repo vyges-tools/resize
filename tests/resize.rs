@@ -1,6 +1,6 @@
 //! End-to-end resize tests — fully offline (the sta-si timer is pure std, no simulator).
 
-use vyges_resize::engine::run_inputs;
+use vyges_resize::engine::{run_inputs, run_inputs_spef};
 use vyges_resize::job::{glob_match, parse_cfg};
 use vyges_sta_si::job::StaJob;
 use vyges_sta_si::netlist;
@@ -74,6 +74,53 @@ fn recovers_area_by_downsizing_when_met() {
     assert!(r.changed.iter().all(|(_, old, new)| old == "INV2" && new == "INV"));
     let nl2 = netlist::parse(&r.netlist_v).unwrap();
     assert!(nl2.insts.iter().any(|i| i.cell == "INV"));
+}
+
+// post-place ECO: a heavy-RC net on n1 (the wire u1 drives). With SPEF the driver sees ~8×
+// the static load, so the path violates and sizing has real leverage; ideal interconnect
+// doesn't see it.
+const SPEF_HEAVY_N1: &str = r#"
+*SPEF "IEEE 1481-1999"
+*C_UNIT 1 FF
+*R_UNIT 1 OHM
+*NAME_MAP
+*1 n1
+*2 u1
+*3 u2
+*D_NET *1 250.000000
+*CONN
+*I *2:Y O
+*I *3:A I
+*CAP
+1 *2:Y 125.000000
+2 *1 125.000000
+*RES
+1 *1 *2:Y 3000.000000
+2 *1 *3:A 3000.000000
+*END
+"#;
+
+#[test]
+fn eco_spef_gives_real_sizing_leverage() {
+    let cfg = parse_cfg("group: INV INV2\nobjective: timing\neffort: high\n").unwrap();
+    // a period the ideal-interconnect path comfortably meets...
+    let ideal = run_inputs(NL_INV, LIB, &sta(0.6), &cfg).unwrap();
+    assert!(!ideal.eco);
+    assert!(ideal.before_wns >= 0.0, "ideal should meet at 0.6 ns: {}", ideal.before_wns);
+    assert!(ideal.changed.is_empty(), "nothing to do on a met, already-weakest design");
+
+    // ...but the real wire RC pushes it into violation, and sizing recovers it.
+    let eco = run_inputs_spef(NL_INV, LIB, Some(SPEF_HEAVY_N1), &sta(0.6), &cfg).unwrap();
+    assert!(eco.eco);
+    assert!(eco.before_wns < ideal.before_wns, "SPEF must add real wire delay");
+    assert!(eco.before_wns < 0.0, "the heavy net should violate: {}", eco.before_wns);
+    assert!(eco.after_wns > eco.before_wns, "sizing should improve it");
+    // the leverage is on u1 — the driver of the heavy net.
+    assert!(
+        eco.changed.iter().any(|(inst, _, _)| inst == "u1"),
+        "expected u1 (heavy-net driver) to be upsized, got {:?}",
+        eco.changed
+    );
 }
 
 #[test]

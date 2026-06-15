@@ -25,6 +25,9 @@ pub struct ResizeResult {
     pub changed: Vec<(String, String, String)>,
     /// The resized netlist as structural Verilog.
     pub netlist_v: String,
+    /// Whether sizing was scored against real interconnect parasitics (a SPEF was supplied,
+    /// i.e. post-place ECO mode) rather than ideal interconnect.
+    pub eco: bool,
 }
 
 /// Build a [`Timer`] from a job, reading the netlist / Liberty / SPEF files it names.
@@ -45,21 +48,37 @@ fn build_timer(sta: &StaJob) -> Result<Timer, String> {
     Timer::build(&nl, &lib, sta, spef.as_ref()).map_err(|e| e.to_string())
 }
 
-/// Run a sizing job loaded from disk.
+/// Run a sizing job loaded from disk. **Post-place ECO mode** kicks in automatically when the
+/// job names a `spef:` — sizing is then scored against the real wire RC the placed design
+/// presents, not ideal interconnect.
 pub fn run(job: &ResizeJob) -> Result<ResizeResult, String> {
-    optimize(build_timer(&job.sta)?, &job.cfg)
+    optimize(build_timer(&job.sta)?, &job.cfg, job.sta.spef.is_some())
 }
 
 /// Run on already-parsed inputs (the `demo` path; ideal interconnect, no SPEF).
 pub fn run_inputs(nl_text: &str, lib_text: &str, sta: &StaJob, cfg: &ResizeCfg) -> Result<ResizeResult, String> {
-    let nl = netlist::parse(nl_text).map_err(|e| e.to_string())?;
-    let lib = Lib::parse(lib_text).map_err(|e| e.to_string())?;
-    let timer = Timer::build(&nl, &lib, sta, None).map_err(|e| e.to_string())?;
-    optimize(timer, cfg)
+    run_inputs_spef(nl_text, lib_text, None, sta, cfg)
 }
 
-/// The optimizer over a built [`Timer`].
-pub fn optimize(mut timer: Timer, cfg: &ResizeCfg) -> Result<ResizeResult, String> {
+/// Run on already-parsed inputs with optional SPEF text — the offline form of post-place ECO
+/// sizing. With `spef_text = Some(..)` every candidate is scored against real interconnect.
+pub fn run_inputs_spef(
+    nl_text: &str,
+    lib_text: &str,
+    spef_text: Option<&str>,
+    sta: &StaJob,
+    cfg: &ResizeCfg,
+) -> Result<ResizeResult, String> {
+    let nl = netlist::parse(nl_text).map_err(|e| e.to_string())?;
+    let lib = Lib::parse(lib_text).map_err(|e| e.to_string())?;
+    let spef = spef_text.map(Spef::parse);
+    let timer = Timer::build(&nl, &lib, sta, spef.as_ref()).map_err(|e| e.to_string())?;
+    optimize(timer, cfg, spef.is_some())
+}
+
+/// The optimizer over a built [`Timer`]. `eco` records whether the timer carries interconnect
+/// parasitics (post-place ECO sizing) for the report.
+pub fn optimize(mut timer: Timer, cfg: &ResizeCfg, eco: bool) -> Result<ResizeResult, String> {
     // cell name -> (group index, position weakest..strongest)
     let mut pos: HashMap<String, (usize, usize)> = HashMap::new();
     for (gi, g) in cfg.groups.iter().enumerate() {
@@ -161,5 +180,6 @@ pub fn optimize(mut timer: Timer, cfg: &ResizeCfg) -> Result<ResizeResult, Strin
         after_tns: timer.tns(),
         changed,
         netlist_v: emit::to_verilog(timer.netlist()),
+        eco,
     })
 }
