@@ -1,6 +1,6 @@
 [package]
 name = "vyges-resize"
-version = "0.0.1"
+version = "0.1.0"
 edition = "2021"
 description = "STA-driven gate sizing: drive-strength resize / Vt-swap to close timing, netlist in / netlist out."
 license = "Apache-2.0"
@@ -12,7 +12,7 @@ repository = "https://github.com/vyges-tools/resize"
 # readers + design model, so resize needs no other deps. Sibling-checkout path dep in
 # dev; a release pins a git/version dep.
 [dependencies]
-vyges-sta-si = { path = "../vyges-tools-sta-si" }
+vyges-sta-si = { git = "https://github.com/vyges-tools/sta-si", tag = "v0.1.0" }
 
 [[bin]]
 name = "vyges-resize"
