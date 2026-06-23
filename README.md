@@ -86,6 +86,19 @@ Run it as a post-place ECO: place → extract (SPEF) → `vyges-resize` → hand
 back for legalization. Without a `spef:` it sizes pre-place against ideal interconnect; the
 report states which mode it ran in.
 
+## Domain coverage
+
+`vyges-resize` operates on the **standard-cell digital abstraction** — it swaps **standard-cell
+drive strengths** (the iso-footprint variant families you declare), each candidate scored by the
+digital `vyges-sta-si` timer. That makes it a **digital optimization** engine: it applies
+wherever a design is built from characterized standard cells with drive-strength variants in the
+Liberty. It does **not** apply to analog / mixed-signal blocks — they have no standard-cell
+drive-strength variants and no Liberty-arc analogue for the timer to score. For analog /
+mixed-signal physical and integrity coverage, reach for the analog-capable Vyges engines —
+[`lvs`](https://github.com/vyges-tools/lvs), [`layout`](https://github.com/vyges-tools/layout),
+[`em-ir`](https://github.com/vyges-tools/em-ir), [`thermal`](https://github.com/vyges-tools/thermal),
+and [`extract`](https://github.com/vyges-tools/extract).
+
 ## Status & bounds
 
 v0 sizes a netlist → netlist on the variant families you declare; objective `timing` closes
