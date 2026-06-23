@@ -12,7 +12,7 @@ repository = "https://github.com/vyges-tools/resize"
 # readers + design model, so resize needs no other deps. Sibling-checkout path dep in
 # dev; a release pins a git/version dep.
 [dependencies]
-vyges-sta-si = { git = "https://github.com/vyges-tools/sta-si", tag = "v0.1.0" }
+vyges-sta-si = { git = "https://github.com/vyges-tools/sta-si", branch = "main" }
 
 [[bin]]
 name = "vyges-resize"
