@@ -195,6 +195,32 @@ fn finish(r: ResizeResult, cli: &Cli) {
 
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
+
+    if args.iter().any(|a| a == "--describe") {
+        // Machine-readable description of `run` for tooling that drives it.
+        const DESCRIBE: &str = r#"{
+  "name": "resize",
+  "summary": "STA-driven gate sizing (drive-strength resize / Vt-swap to close timing)",
+  "invocation": {
+    "args_template": ["run", "{job}"],
+    "optional": [ { "arg": "out", "flag": "-o" } ],
+    "emits_json": true
+  },
+  "inputs": {
+    "type": "object",
+    "required": ["job"],
+    "properties": {
+      "job": { "type": "string", "description": "path to the resize job file (design, netlist, lib, STA config, sizing config)" },
+      "out": { "type": "string", "description": "path to write the resized netlist (default: stdout)" }
+    }
+  },
+  "artifacts": [ { "role": "netlist", "from_arg": "out" } ]
+}
+"#;
+        print!("{DESCRIBE}");
+        return;
+    }
+
     let cli = parse_cli(&args);
 
     if cli.bug_report {
