@@ -177,7 +177,43 @@ fn write_netlist(text: &str, out: &Option<String>, quiet: bool) {
     }
 }
 
+/// Emit structured events (STDERR) summarizing the resize outcome. This is an
+/// optimizer, so events are summary-style: one completion event carrying the
+/// before/after timing headline, plus (for small change sets) one event per swap.
+fn emit_resize_events(r: &ResizeResult) {
+    use vyges_events::{Event, Severity};
+    let e = |sev, code: &str, msg: String, objs: Vec<String>| {
+        vyges_events::emit(&Event::new("vyges-resize", sev, msg).with_code(code).with_objects(objs));
+    };
+    // Per-swap events only when the change set is small enough to be useful.
+    if r.changed.len() <= 20 {
+        for (inst, old, new) in &r.changed {
+            e(
+                Severity::Info,
+                "RESIZE-FIX",
+                format!("resized {inst}: {old} -> {new}"),
+                vec![format!("cell:{inst}")],
+            );
+        }
+    }
+    e(
+        Severity::Info,
+        "RESIZE-DONE",
+        format!(
+            "resized {} cell(s), WNS {:.4} -> {:.4} ns, TNS {:.4} -> {:.4} ns{}",
+            r.changed.len(),
+            r.before_wns,
+            r.after_wns,
+            r.before_tns,
+            r.after_tns,
+            if r.eco { " [post-place ECO]" } else { "" }
+        ),
+        vec![],
+    );
+}
+
 fn finish(r: ResizeResult, cli: &Cli) {
+    emit_resize_events(&r);
     if cli.json {
         println!("{}", report_json(&r));
         if cli.out.is_some() {

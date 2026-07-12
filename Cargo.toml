@@ -13,6 +13,7 @@ repository = "https://github.com/vyges-tools/resize"
 # dev; a release pins a git/version dep.
 [dependencies]
 vyges-sta-si = { git = "https://github.com/vyges-tools/sta-si", branch = "main" }
+vyges-events = { git = "https://github.com/vyges-tools/events", branch = "main", default-features = false }
 
 [[bin]]
 name = "vyges-resize"
