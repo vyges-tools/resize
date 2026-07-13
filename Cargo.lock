@@ -108,7 +108,7 @@ source = "git+https://github.com/vyges-tools/loom?branch=main#7f4aac6ffbeb6d01bc
 
 [[package]]
 name = "vyges-resize"
-version = "0.1.12"
+version = "0.1.13"
 dependencies = [
  "vyges-events",
  "vyges-sta-si",
