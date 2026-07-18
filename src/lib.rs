@@ -16,9 +16,9 @@
 //! query + speculative checkpoint/restore API. Pure std (the timer is too) — fully
 //! unit-tested offline, no simulator.
 
-pub mod job;
 pub mod emit;
 pub mod engine;
+pub mod job;
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const COPYRIGHT: &str = "© 2026 Vyges. All Rights Reserved.  https://vyges.com";

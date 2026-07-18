@@ -56,7 +56,12 @@ pub fn run(job: &ResizeJob) -> Result<ResizeResult, String> {
 }
 
 /// Run on already-parsed inputs (the `demo` path; ideal interconnect, no SPEF).
-pub fn run_inputs(nl_text: &str, lib_text: &str, sta: &StaJob, cfg: &ResizeCfg) -> Result<ResizeResult, String> {
+pub fn run_inputs(
+    nl_text: &str,
+    lib_text: &str,
+    sta: &StaJob,
+    cfg: &ResizeCfg,
+) -> Result<ResizeResult, String> {
     run_inputs_spef(nl_text, lib_text, None, sta, cfg)
 }
 
@@ -92,7 +97,11 @@ pub fn optimize(mut timer: Timer, cfg: &ResizeCfg, eco: bool) -> Result<ResizeRe
 
     let dont = |inst: &str| cfg.dont_touch.iter().any(|p| glob_match(p, inst));
     let cell_of = |t: &Timer, inst: &str| -> Option<String> {
-        t.netlist().insts.iter().find(|i| i.name == inst).map(|i| i.cell.clone())
+        t.netlist()
+            .insts
+            .iter()
+            .find(|i| i.name == inst)
+            .map(|i| i.cell.clone())
     };
 
     // ---- timing: upsize the critical path until setup is met or no move helps ----
@@ -112,7 +121,9 @@ pub fn optimize(mut timer: Timer, cfg: &ResizeCfg, eco: bool) -> Result<ResizeRe
                 if !seen.insert(inst.to_string()) || dont(inst) {
                     continue;
                 }
-                let Some(cur) = cell_of(&timer, inst) else { continue };
+                let Some(cur) = cell_of(&timer, inst) else {
+                    continue;
+                };
                 if let Some(&(gi, pi)) = pos.get(&cur) {
                     if pi + 1 < cfg.groups[gi].len() {
                         cands.push((inst.to_string(), cur, cfg.groups[gi][pi + 1].clone()));
@@ -150,13 +161,19 @@ pub fn optimize(mut timer: Timer, cfg: &ResizeCfg, eco: bool) -> Result<ResizeRe
 
     // ---- area recovery: downsize slack instances while timing stays met (one greedy pass) ----
     if timer.wns() >= 0.0 {
-        let insts: Vec<(String, String)> =
-            timer.netlist().insts.iter().map(|i| (i.name.clone(), i.cell.clone())).collect();
+        let insts: Vec<(String, String)> = timer
+            .netlist()
+            .insts
+            .iter()
+            .map(|i| (i.name.clone(), i.cell.clone()))
+            .collect();
         for (inst, cur) in insts {
             if dont(&inst) {
                 continue;
             }
-            let Some(&(gi, pi)) = pos.get(&cur) else { continue };
+            let Some(&(gi, pi)) = pos.get(&cur) else {
+                continue;
+            };
             if pi == 0 {
                 continue; // already weakest
             }

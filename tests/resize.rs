@@ -46,9 +46,17 @@ fn closes_setup_violation_by_upsizing() {
     let cfg = parse_cfg("group: INV INV2\nobjective: timing\neffort: high\n").unwrap();
     let r = run_inputs(NL_INV, LIB, &sta(0.30), &cfg).unwrap();
     assert!(r.before_wns < 0.0, "the input should violate at 0.30 ns");
-    assert!(r.after_wns >= 0.0, "resize should close timing: {} -> {}", r.before_wns, r.after_wns);
+    assert!(
+        r.after_wns >= 0.0,
+        "resize should close timing: {} -> {}",
+        r.before_wns,
+        r.after_wns
+    );
     assert!(!r.changed.is_empty());
-    assert!(r.changed.iter().all(|(_, old, new)| old == "INV" && new == "INV2"));
+    assert!(r
+        .changed
+        .iter()
+        .all(|(_, old, new)| old == "INV" && new == "INV2"));
 
     // the emitted netlist round-trips and carries the upsized cells.
     let nl2 = netlist::parse(&r.netlist_v).unwrap();
@@ -58,7 +66,8 @@ fn closes_setup_violation_by_upsizing() {
 
 #[test]
 fn dont_touch_blocks_the_fix() {
-    let cfg = parse_cfg("group: INV INV2\nobjective: timing\neffort: high\ndont_touch: u1 u2\n").unwrap();
+    let cfg =
+        parse_cfg("group: INV INV2\nobjective: timing\neffort: high\ndont_touch: u1 u2\n").unwrap();
     let r = run_inputs(NL_INV, LIB, &sta(0.30), &cfg).unwrap();
     assert!(r.changed.is_empty(), "every instance is dont_touch");
     assert!(r.after_wns < 0.0, "so the violation can't be fixed");
@@ -71,7 +80,10 @@ fn recovers_area_by_downsizing_when_met() {
     let r = run_inputs(NL_INV2, LIB, &sta(1.0), &cfg).unwrap();
     assert!(r.before_wns >= 0.0 && r.after_wns >= 0.0, "stays met");
     assert!(!r.changed.is_empty(), "should downsize at least one cell");
-    assert!(r.changed.iter().all(|(_, old, new)| old == "INV2" && new == "INV"));
+    assert!(r
+        .changed
+        .iter()
+        .all(|(_, old, new)| old == "INV2" && new == "INV"));
     let nl2 = netlist::parse(&r.netlist_v).unwrap();
     assert!(nl2.insts.iter().any(|i| i.cell == "INV"));
 }
@@ -106,14 +118,28 @@ fn eco_spef_gives_real_sizing_leverage() {
     // a period the ideal-interconnect path comfortably meets...
     let ideal = run_inputs(NL_INV, LIB, &sta(0.6), &cfg).unwrap();
     assert!(!ideal.eco);
-    assert!(ideal.before_wns >= 0.0, "ideal should meet at 0.6 ns: {}", ideal.before_wns);
-    assert!(ideal.changed.is_empty(), "nothing to do on a met, already-weakest design");
+    assert!(
+        ideal.before_wns >= 0.0,
+        "ideal should meet at 0.6 ns: {}",
+        ideal.before_wns
+    );
+    assert!(
+        ideal.changed.is_empty(),
+        "nothing to do on a met, already-weakest design"
+    );
 
     // ...but the real wire RC pushes it into violation, and sizing recovers it.
     let eco = run_inputs_spef(NL_INV, LIB, Some(SPEF_HEAVY_N1), &sta(0.6), &cfg).unwrap();
     assert!(eco.eco);
-    assert!(eco.before_wns < ideal.before_wns, "SPEF must add real wire delay");
-    assert!(eco.before_wns < 0.0, "the heavy net should violate: {}", eco.before_wns);
+    assert!(
+        eco.before_wns < ideal.before_wns,
+        "SPEF must add real wire delay"
+    );
+    assert!(
+        eco.before_wns < 0.0,
+        "the heavy net should violate: {}",
+        eco.before_wns
+    );
     assert!(eco.after_wns > eco.before_wns, "sizing should improve it");
     // the leverage is on u1 — the driver of the heavy net.
     assert!(

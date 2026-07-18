@@ -36,7 +36,8 @@ flags:
   --star               star this tool on GitHub ⭐
 ";
 
-const BUG_URL: &str = "https://github.com/vyges/community/issues/new?template=bug_report_template.yaml";
+const BUG_URL: &str =
+    "https://github.com/vyges/community/issues/new?template=bug_report_template.yaml";
 const FEATURE_URL: &str = "https://github.com/vyges/community/issues/new?labels=enhancement";
 const SPONSOR_URL: &str = "https://github.com/sponsors/vyges-ip";
 const STAR_URL: &str = "https://github.com/vyges-tools/resize";
@@ -45,7 +46,11 @@ fn link(label: &str, url: &str) {
     use std::io::IsTerminal;
     println!("{label}:\n  {url}");
     if std::io::stdout().is_terminal() {
-        let opener = if cfg!(target_os = "macos") { "open" } else { "xdg-open" };
+        let opener = if cfg!(target_os = "macos") {
+            "open"
+        } else {
+            "xdg-open"
+        };
         let _ = std::process::Command::new(opener).arg(url).status();
     }
 }
@@ -98,15 +103,23 @@ fn render_report(r: &ResizeResult) -> String {
     s.push_str("vyges-resize — gate sizing\n");
     s.push_str(&format!(
         "  mode:    {}\n",
-        if r.eco { "post-place ECO (SPEF interconnect)" } else { "pre-place (ideal interconnect)" }
+        if r.eco {
+            "post-place ECO (SPEF interconnect)"
+        } else {
+            "pre-place (ideal interconnect)"
+        }
     ));
     s.push_str(&format!(
         "  before:  WNS {:.4} ns [{}]   TNS {:.4} ns\n",
-        r.before_wns, met(r.before_wns), r.before_tns
+        r.before_wns,
+        met(r.before_wns),
+        r.before_tns
     ));
     s.push_str(&format!(
         "  after:   WNS {:.4} ns [{}]   TNS {:.4} ns\n",
-        r.after_wns, met(r.after_wns), r.after_tns
+        r.after_wns,
+        met(r.after_wns),
+        r.after_tns
     ));
     s.push_str(&format!("  changed: {} cell(s)\n", r.changed.len()));
     for (inst, old, new) in &r.changed {
@@ -152,7 +165,8 @@ library (d) {
   }
 }
 "#;
-const DEMO_JOB: &str = "design: demo\nnetlist: x\nlib: x\nclock: clk 0.30\ninput_slew: 0.02\noutput_load: 0.005\n";
+const DEMO_JOB: &str =
+    "design: demo\nnetlist: x\nlib: x\nclock: clk 0.30\ninput_slew: 0.02\noutput_load: 0.005\n";
 
 fn run_demo() -> Result<ResizeResult, String> {
     let sta = StaJob::parse(DEMO_JOB, "").map_err(|e| e.to_string())?;
@@ -183,7 +197,11 @@ fn write_netlist(text: &str, out: &Option<String>, quiet: bool) {
 fn emit_resize_events(r: &ResizeResult) {
     use vyges_events::{Event, Severity};
     let e = |sev, code: &str, msg: String, objs: Vec<String>| {
-        vyges_events::emit(&Event::new("vyges-resize", sev, msg).with_code(code).with_objects(objs));
+        vyges_events::emit(
+            &Event::new("vyges-resize", sev, msg)
+                .with_code(code)
+                .with_objects(objs),
+        );
     };
     // Per-swap events only when the change set is small enough to be useful.
     if r.changed.len() <= 20 {
@@ -252,6 +270,10 @@ fn main() {
     }
   },
   "artifacts": [ { "role": "netlist", "from_arg": "out" } ],
+  "assertion": {
+    "id": "gate-sizing",
+    "not_applicable": true
+  },
   "consumes": ["netlist", "liberty", "timing_report"]
 }
 "#;
@@ -274,7 +296,11 @@ fn main() {
         return link("Star vyges-resize on GitHub ⭐", STAR_URL);
     }
     if cli.version {
-        println!("vyges-resize {} ({})", vyges_resize::VERSION, env!("VYGES_GIT_SHA"));
+        println!(
+            "vyges-resize {} ({})",
+            vyges_resize::VERSION,
+            env!("VYGES_GIT_SHA")
+        );
         println!("{}", vyges_resize::COPYRIGHT);
         return;
     }
@@ -330,7 +356,12 @@ fn main() {
                 }
             };
             if cli.verbose {
-                eprintln!("sizing {} ({} group(s), effort {})", job.sta.design, job.cfg.groups.len(), job.cfg.effort);
+                eprintln!(
+                    "sizing {} ({} group(s), effort {})",
+                    job.sta.design,
+                    job.cfg.groups.len(),
+                    job.cfg.effort
+                );
             }
             match engine::run(&job) {
                 Ok(r) => finish(r, &cli),

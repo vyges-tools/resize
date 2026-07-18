@@ -58,7 +58,9 @@ pub fn parse_cfg(text: &str) -> Result<ResizeCfg, String> {
     let mut dont_touch = Vec::new();
     for raw in text.lines() {
         let line = raw.split('#').next().unwrap_or("").trim();
-        let Some((k, v)) = line.split_once(':') else { continue };
+        let Some((k, v)) = line.split_once(':') else {
+            continue;
+        };
         let (k, v) = (k.trim().to_lowercase(), v.trim());
         match k.as_str() {
             "group" => {
@@ -76,7 +78,12 @@ pub fn parse_cfg(text: &str) -> Result<ResizeCfg, String> {
             }
             "effort" => effort_word = v.to_lowercase(),
             "dont_touch" => {
-                dont_touch.extend(v.split([',', ' ']).map(str::trim).filter(|s| !s.is_empty()).map(str::to_string));
+                dont_touch.extend(
+                    v.split([',', ' '])
+                        .map(str::trim)
+                        .filter(|s| !s.is_empty())
+                        .map(str::to_string),
+                );
             }
             _ => {}
         }
@@ -87,7 +94,12 @@ pub fn parse_cfg(text: &str) -> Result<ResizeCfg, String> {
         "high" => 500,
         other => return Err(format!("effort must be low|medium|high, got {other:?}")),
     };
-    Ok(ResizeCfg { groups, objective, effort, dont_touch })
+    Ok(ResizeCfg {
+        groups,
+        objective,
+        effort,
+        dont_touch,
+    })
 }
 
 /// A tiny glob matcher: supports a single leading and/or trailing `*` (e.g. `clk_*`,
