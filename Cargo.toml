@@ -1,6 +1,6 @@
 [package]
 name = "vyges-resize"
-version = "0.1.15"
+version = "0.1.17"
 edition = "2021"
 description = "STA-driven gate sizing: drive-strength resize / Vt-swap to close timing, netlist in / netlist out."
 license = "Apache-2.0"
