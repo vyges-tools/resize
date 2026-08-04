@@ -254,6 +254,7 @@ fn main() {
     if args.iter().any(|a| a == "--describe") {
         // Machine-readable description of `run` for tooling that drives it.
         const DESCRIBE: &str = r#"{
+  "schema": "vyges-tool-descriptor/1.1",
   "name": "resize",
   "summary": "STA-driven gate sizing (drive-strength resize / Vt-swap to close timing)",
   "maturity": "structured",
