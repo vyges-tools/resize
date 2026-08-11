@@ -14,12 +14,12 @@ use vyges_resize::job::{parse_cfg, Objective, ResizeJob};
 use vyges_sta_si::job::StaJob;
 
 const USAGE: &str = "\
-vyges-resize — STA-driven gate sizing (drive-strength resize / Vt-swap to close timing)
+vyges loom resize — STA-driven gate sizing (drive-strength resize / Vt-swap to close timing)
 
 usage:
-  vyges-resize run   JOB  [-o OUT] [--json] [--fail-on-violation]   size a netlist -> resized netlist
-  vyges-resize check JOB                                            validate the job
-  vyges-resize demo                                                 size a built-in example (no files)
+  vyges loom resize run   JOB  [-o OUT] [--json] [--fail-on-violation]   size a netlist -> resized netlist
+  vyges loom resize check JOB                                            validate the job
+  vyges loom resize demo                                                 size a built-in example (no files)
 
 flags:
   -o FILE              write the resized netlist to FILE (default: stdout)
