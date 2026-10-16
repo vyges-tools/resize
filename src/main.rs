@@ -13,6 +13,27 @@ use vyges_resize::engine::{self, ResizeResult};
 use vyges_resize::job::{parse_cfg, Objective, ResizeJob};
 use vyges_sta_si::job::StaJob;
 
+/// A diagnostic as a structured event (`RESIZE-ERROR`, or `RESIZE-WARNING` for a warning; `vyges-events/1.0`)
+/// instead of a bare stderr line; text after a blank line (the usage) stays plain help.
+fn diag_line(msg: String) {
+    let (head, help) = match msg.split_once("\n\n") {
+        Some((h, rest)) => (h.to_string(), Some(rest.to_string())),
+        None => (msg, None),
+    };
+    let warn = head.starts_with("warning: ");
+    let text = head.strip_prefix("error: ").or_else(|| head.strip_prefix("warning: ")).unwrap_or(&head).to_string();
+    let (severity, code) = if warn { (vyges_events::Severity::Warn, "RESIZE-WARNING") } else { (vyges_events::Severity::Error, "RESIZE-ERROR") };
+    vyges_events::emit(&vyges_events::Event::new("vyges-resize", severity, text).with_code(code));
+    if let Some(h) = help {
+        eprintln!("{h}");
+    }
+}
+
+macro_rules! diag {
+    ($($t:tt)*) => { diag_line(format!($($t)*)) };
+}
+
+
 const USAGE: &str = "\
 vyges loom resize — STA-driven gate sizing (drive-strength resize / Vt-swap to close timing)
 
@@ -183,7 +204,7 @@ fn write_netlist(text: &str, out: &Option<String>, quiet: bool) {
                 }
             }
             Err(e) => {
-                eprintln!("error: {path}: {e}");
+                diag!("error: {path}: {e}");
                 exit(1);
             }
         },
@@ -319,7 +340,7 @@ fn main() {
         "demo" => match run_demo() {
             Ok(r) => finish(r, &cli),
             Err(e) => {
-                eprintln!("error: {e}");
+                diag!("error: {e}");
                 exit(1);
             }
         },
@@ -343,7 +364,7 @@ fn main() {
                     );
                 }
                 Err(e) => {
-                    eprintln!("error: {e}");
+                    diag!("error: {e}");
                     exit(2);
                 }
             }
@@ -356,7 +377,7 @@ fn main() {
             let job = match ResizeJob::load(path) {
                 Ok(j) => j,
                 Err(e) => {
-                    eprintln!("error: {e}");
+                    diag!("error: {e}");
                     exit(2);
                 }
             };
@@ -371,7 +392,7 @@ fn main() {
             match engine::run(&job) {
                 Ok(r) => finish(r, &cli),
                 Err(e) => {
-                    eprintln!("error: {e}");
+                    diag!("error: {e}");
                     exit(1);
                 }
             }
