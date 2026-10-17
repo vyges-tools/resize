@@ -32,19 +32,9 @@ pub struct ResizeResult {
 
 /// Build a [`Timer`] from a job, reading the netlist / Liberty / SPEF files it names.
 fn build_timer(sta: &StaJob) -> Result<Timer, String> {
-    let nl = netlist::load(&sta.resolve(&sta.netlist)).map_err(|e| e.to_string())?;
-    let mut lib = Lib::default();
-    for l in &sta.libs {
-        let one = Lib::load(&sta.resolve(l)).map_err(|e| e.to_string())?;
-        lib.cells.extend(one.cells);
-    }
-    if lib.cells.is_empty() {
-        return Err("no cells in any .lib".into());
-    }
-    let spef = match &sta.spef {
-        Some(p) => Some(Spef::load(&sta.resolve(p)).map_err(|e| e.to_string())?),
-        None => None,
-    };
+    // the timer's own reader: libraries merged in the first one's units, SPEF in the netlist's names
+    let (nl, lib, spef) =
+        vyges_sta_si::engine::load_inputs(sta, Default::default()).map_err(|e| e.to_string())?;
     Timer::build(&nl, &lib, sta, spef.as_ref()).map_err(|e| e.to_string())
 }
 
@@ -76,9 +66,26 @@ pub fn run_inputs_spef(
 ) -> Result<ResizeResult, String> {
     let nl = netlist::parse(nl_text).map_err(|e| e.to_string())?;
     let lib = Lib::parse(lib_text).map_err(|e| e.to_string())?;
-    let spef = spef_text.map(Spef::parse);
+    let spef = spef_text.map(|t| {
+        let mut s = Spef::parse(t);
+        s.rename_to_design(&nl); // the netlist's spelling of a net tied to a port, as the timer joins it
+        s
+    });
     let timer = Timer::build(&nl, &lib, sta, spef.as_ref()).map_err(|e| e.to_string())?;
     optimize(timer, cfg, spef.is_some())
+}
+
+/// The nearest member of `group` past position `pi` — toward the end when `up`, else toward the
+/// start — that the library does not mark `dont_use`. A library-withheld cell is stepped over,
+/// never chosen (the reference's resizer skips it in every candidate list), though an instance
+/// may already hold one and still move off it.
+fn neighbour(group: &[String], pi: usize, up: bool, lib: &Lib) -> Option<String> {
+    let usable = |c: &&String| !lib.cells.get(c.as_str()).is_some_and(|l| l.dont_use);
+    if up {
+        group.iter().skip(pi + 1).find(usable).cloned()
+    } else {
+        group.iter().take(pi).rev().find(usable).cloned()
+    }
 }
 
 /// The optimizer over a built [`Timer`]. `eco` records whether the timer carries interconnect
@@ -125,8 +132,8 @@ pub fn optimize(mut timer: Timer, cfg: &ResizeCfg, eco: bool) -> Result<ResizeRe
                     continue;
                 };
                 if let Some(&(gi, pi)) = pos.get(&cur) {
-                    if pi + 1 < cfg.groups[gi].len() {
-                        cands.push((inst.to_string(), cur, cfg.groups[gi][pi + 1].clone()));
+                    if let Some(up) = neighbour(&cfg.groups[gi], pi, true, timer.lib()) {
+                        cands.push((inst.to_string(), cur, up));
                     }
                 }
             }
@@ -174,10 +181,9 @@ pub fn optimize(mut timer: Timer, cfg: &ResizeCfg, eco: bool) -> Result<ResizeRe
             let Some(&(gi, pi)) = pos.get(&cur) else {
                 continue;
             };
-            if pi == 0 {
-                continue; // already weakest
-            }
-            let weaker = cfg.groups[gi][pi - 1].clone();
+            let Some(weaker) = neighbour(&cfg.groups[gi], pi, false, timer.lib()) else {
+                continue; // already the weakest usable
+            };
             let base_whs = timer.whs();
             let ck = timer.checkpoint();
             timer.resize(&inst, &weaker);

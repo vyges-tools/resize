@@ -164,3 +164,23 @@ fn globs() {
     assert!(!glob_match("u1", "u2"));
     assert!(!glob_match("clk_*", "rst_a"));
 }
+
+/// A cell the library marks `dont_use : true` is never chosen — stepped over to the next usable
+/// member of the group, or no move at all when none is left (the reference's resizer skips a
+/// dont_use cell in every candidate list).
+#[test]
+fn a_dont_use_cell_is_stepped_over() {
+    // INV2D: INV2 under another name, withheld by the library, placed between INV and INV2
+    let inv2 = &LIB[LIB.find("  cell (INV2)").unwrap()..LIB.rfind('}').unwrap()];
+    let withheld = inv2.replace("cell (INV2) {", "cell (INV2D) { dont_use : true;");
+    let lib = LIB.replacen("  cell (INV2)", &format!("{withheld}  cell (INV2)"), 1);
+    let cfg = parse_cfg("group: INV INV2D INV2\nobjective: timing\neffort: high\n").unwrap();
+    let r = run_inputs(NL_INV, &lib, &sta(0.30), &cfg).unwrap();
+    assert!(!r.changed.is_empty() && r.changed.iter().all(|(_, _, new)| new == "INV2"), "{:?}", r.changed);
+
+    // with the only stronger member withheld there is nothing to size to
+    let only = LIB.replace("cell (INV2) {", "cell (INV2) { dont_use : true;");
+    let cfg = parse_cfg("group: INV INV2\nobjective: timing\neffort: high\n").unwrap();
+    let r = run_inputs(NL_INV, &only, &sta(0.30), &cfg).unwrap();
+    assert!(r.changed.is_empty(), "{:?}", r.changed);
+}
