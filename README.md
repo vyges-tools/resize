@@ -1,7 +1,5 @@
 # vyges-resize
 
-**[Download Loom](https://vyges.com/products/vyges-cli/#install)** · install the free [Vyges CLI](https://vyges.com/products/vyges-cli/), then `vyges install loom`
-
 **STA-driven gate sizing**: a gate-level netlist in, a **resized netlist** out — drive
 strengths chosen to close timing, scored by a real static-timing engine.
 
